@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incidencias Agentes IA</title>
+<style>
+  :root{
+    --bg:#F5F6F9; --surface:#FFFFFF; --surface-2:#ECEFF5; --ink:#1B2333; --muted:#626E7F; --border:#DEE2EA;
+    --accent:#2F4B9A; --accent-ink:#FFFFFF; --accent-soft:#E7ECFA;
+    --urgent:#B7392F; --urgent-soft:#FAE6E4; --warn:#9B6B12; --warn-soft:#FAF0DA; --ok:#276B48; --ok-soft:#E1F1E8;
+    --shadow: 0 1px 2px rgba(27,35,51,.06), 0 8px 24px -12px rgba(27,35,51,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#11151F; --surface:#1A2030; --surface-2:#222A3C; --ink:#ECEFF5; --muted:#9AA5B7; --border:#2B3448;
+      --accent:#8CA3EE; --accent-ink:#11151F; --accent-soft:#26304A;
+      --urgent:#E58079; --urgent-soft:#3A2229; --warn:#E4B667; --warn-soft:#392F1C; --ok:#7BCB9E; --ok-soft:#1D3327;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#11151F; --surface:#1A2030; --surface-2:#222A3C; --ink:#ECEFF5; --muted:#9AA5B7; --border:#2B3448;
+    --accent:#8CA3EE; --accent-ink:#11151F; --accent-soft:#26304A;
+    --urgent:#E58079; --urgent-soft:#3A2229; --warn:#E4B667; --warn-soft:#392F1C; --ok:#7BCB9E; --ok-soft:#1D3327;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    padding-inline:16px; padding-block:20px 48px;
+  }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
+  h1,h2,h3{ text-wrap:balance; margin:0; }
+  p{ margin:0; }
+  .wrap{ max-width:920px; margin-inline:auto; display:flex; flex-direction:column; gap:20px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{ width:34px;height:34px;border-radius:9px; background:linear-gradient(155deg,var(--accent),var(--urgent)); display:flex;align-items:center;justify-content:center; color:var(--accent-ink); font-weight:700; font-size:16px; flex:none; }
+  .brand h1{ font-size:17px; font-weight:700; letter-spacing:-.01em; }
+  .brand span{ display:block; font-size:12px; color:var(--muted); margin-top:1px; }
+  .tabs{ display:flex; gap:6px; background:var(--surface-2); padding:4px; border-radius:11px; }
+  .tabs button{ appearance:none; border:0; background:transparent; color:var(--muted); font:inherit; font-weight:600; font-size:13px; padding:8px 14px; border-radius:8px; cursor:pointer; }
+  .tabs button[aria-selected="true"]{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
+  .tabs button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  [hidden]{ display:none !important; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:var(--shadow); }
+  fieldset{ border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+  legend{ padding:0; font-weight:600; font-size:14px; margin-bottom:2px; }
+  .hint{ font-size:12.5px; color:var(--muted); line-height:1.5; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:13px; font-weight:600; }
+  .field .opt{ font-weight:400; color:var(--muted); }
+  .row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .row > .field{ flex:1 1 220px; }
+  input[type=text], input[type=tel], input[type=email], input[type=url], select, textarea{
+    font:inherit; font-size:14px; color:var(--ink); background:var(--surface);
+    border:1px solid var(--border); border-radius:9px; padding:10px 12px; width:100%;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  textarea{ resize:vertical; min-height:76px; line-height:1.5; }
+  select{ appearance:none; background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%); background-position:calc(100% - 18px) 15px, calc(100% - 13px) 15px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:34px; }
+  .pillgroup{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill-radio{ position:relative; }
+  .pill-radio input{ position:absolute; opacity:0; inset:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .pill-radio span{ display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:99px; border:1px solid var(--border); font-size:13px; font-weight:600; color:var(--muted); background:var(--surface); }
+  .pill-radio input:checked + span{ border-color:transparent; }
+  .pill-radio input:focus-visible + span{ outline:2px solid var(--accent); outline-offset:2px; }
+  .pill-radio .swatch{ width:9px;height:9px;border-radius:50%; background:currentColor; }
+  .pill-radio.u-alto input:checked + span{ background:var(--urgent-soft); color:var(--urgent); }
+  .pill-radio.u-medio input:checked + span{ background:var(--warn-soft); color:var(--warn); }
+  .pill-radio.u-bajo input:checked + span{ background:var(--ok-soft); color:var(--ok); }
+  .pill-radio.origen input:checked + span{ background:var(--accent-soft); color:var(--accent); }
+  .dropzone{ border:1.5px dashed var(--border); border-radius:11px; padding:16px; display:flex; align-items:center; gap:12px; background:var(--surface-2); }
+  .dropzone input{ font-size:12.5px; }
+  .dropzone .ico{ font-size:20px; flex:none; }
+  .filename{ font-size:12.5px; color:var(--muted); }
+  .submitbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding-top:4px; }
+  .btn{ appearance:none; border:0; border-radius:10px; font:inherit; font-weight:700; font-size:14px; padding:11px 20px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-primary:disabled{ opacity:.55; cursor:progress; }
+  .btn-ghost{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); }
+  .btn-sm{ padding:7px 12px; font-size:12.5px; border-radius:8px; }
+  .err{ font-size:12.5px; color:var(--urgent); min-height:16px; }
+  .banner{ border-radius:12px; padding:14px 16px; font-size:13.5px; display:flex; gap:10px; align-items:flex-start; }
+  .banner.ok{ background:var(--ok-soft); color:var(--ok); }
+  .banner.bad{ background:var(--urgent-soft); color:var(--urgent); }
+  .banner.warn{ background:var(--warn-soft); color:var(--warn); }
+  .banner b{ display:block; font-size:13.5px; margin-bottom:2px; }
+  .banner .sub{ color:var(--ink); opacity:.75; font-size:12.5px; }
+  .ticket{ font-family:"IBM Plex Mono",monospace; font-weight:600; }
+  .gate{ display:flex; flex-direction:column; gap:14px; max-width:340px; margin-inline:auto; text-align:center; padding-block:28px; }
+  .gate .ico{ font-size:26px; }
+  .gate input{ text-align:center; letter-spacing:.04em; }
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  @media (max-width:560px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
+  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:14px; display:flex; flex-direction:column; gap:4px; }
+  .kpi b{ font-family:"IBM Plex Mono",monospace; font-size:22px; font-variant-numeric:tabular-nums; }
+  .kpi span{ font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .kpi.alto b{ color:var(--urgent); }
+  .kpi.medio b{ color:var(--warn); }
+  .kpi.bajo b{ color:var(--ok); }
+  .toolbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{ appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--muted); font:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer; }
+  .chip[aria-pressed="true"]{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .group-label{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:18px 2px 8px; display:flex; align-items:center; gap:8px; }
+  .group-label .bar{ width:10px;height:10px;border-radius:3px; }
+  .group-label.alto .bar{ background:var(--urgent); }
+  .group-label.medio .bar{ background:var(--warn); }
+  .group-label.bajo .bar{ background:var(--ok); }
+  .incident{ border:1px solid var(--border); border-left-width:4px; border-radius:13px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; }
+  .incident.alto{ border-left-color:var(--urgent); }
+  .incident.medio{ border-left-color:var(--warn); }
+  .incident.bajo{ border-left-color:var(--ok); }
+  .incident + .incident{ margin-top:10px; }
+  .incident summary{ list-style:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:12px; }
+  .incident summary::-webkit-details-marker{ display:none; }
+  .incident summary .chev{ margin-left:auto; color:var(--muted); transition:transform .15s; flex:none; }
+  .incident[open] summary .chev{ transform:rotate(90deg); }
+  .isum-main{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .isum-title{ font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:56ch; }
+  .isum-meta{ font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; }
+  .badge{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+  .badge.alto{ background:var(--urgent-soft); color:var(--urgent); }
+  .badge.medio{ background:var(--warn-soft); color:var(--warn); }
+  .badge.bajo{ background:var(--ok-soft); color:var(--ok); }
+  .badge.estado{ background:var(--surface-2); color:var(--ink); }
+  .idetail{ padding:0 16px 18px; display:flex; flex-direction:column; gap:14px; border-top:1px solid var(--border); }
+  .idetail .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; padding-top:14px; }
+  @media (max-width:520px){ .idetail .grid{ grid-template-columns:1fr; } }
+  .dpair{ display:flex; flex-direction:column; gap:3px; }
+  .dpair label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .dpair div{ font-size:13.5px; line-height:1.5; white-space:pre-wrap; }
+  .dpair a{ color:var(--accent); }
+  .manage{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; background:var(--surface-2); border-radius:11px; padding:12px; }
+  .manage .field{ flex:1 1 180px; }
+  .manage textarea{ min-height:60px; }
+  .empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:13.5px; display:flex; flex-direction:column; gap:6px; align-items:center; }
+  .empty .ico{ font-size:24px; }
+  footer{ text-align:center; font-size:11.5px; color:var(--muted); padding-top:4px; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="dot">IA</div>
+      <div>
+        <h1>Incidencias Agentes IA</h1>
+        <span>Láserum · Elha — Contact Center, Agendas, Soporte, Marketing</span>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" id="tab-form" role="tab" aria-selected="true">Nuevo reporte</button>
+      <button type="button" id="tab-panel" role="tab" aria-selected="false">Panel de seguimiento</button>
+    </div>
+  </div>
+
+  <div class="banner warn" id="config-warning" hidden>
+    <span>⚠️</span>
+    <div><b>Falta configurar los destinos</b><div class="sub">Este archivo aún no tiene conectadas las URL de los webhooks de n8n. Edita las constantes al principio del bloque <code>&lt;script&gt;</code>, al final del archivo HTML.</div></div>
+  </div>
+
+  <!-- ============ FORM VIEW ============ -->
+  <section id="view-form">
+    <form id="incident-form" class="card" novalidate>
+      <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <fieldset>
+          <legend>¿Desde dónde reportas?</legend>
+          <p class="hint">Indica la marca y, si es Láserum, el departamento desde el que se detecta la incidencia.</p>
+          <div class="pillgroup" id="origen-group">
+            <label class="pill-radio origen"><input type="radio" name="origen" id="f-origen-laserum" value="Láserum" required><span>Láserum</span></label>
+            <label class="pill-radio origen"><input type="radio" name="origen" id="f-origen-elha" value="Elha"><span>Elha</span></label>
+          </div>
+          <div class="field" id="departamento-wrap" hidden>
+            <label for="f-departamento">Departamento <span class="opt">(Láserum)</span></label>
+            <select id="f-departamento">
+              <option value="">Selecciona un departamento…</option>
+              <option>Contact Center</option>
+              <option>Gestión de agendas</option>
+              <option>Soporte al usuario</option>
+              <option>Marketing</option>
+              <option>Otro</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Nivel de urgencia</legend>
+          <div class="pillgroup" id="urgencia-group">
+            <label class="pill-radio u-alto"><input type="radio" name="urgencia" value="Alto" required><span><i class="swatch"></i>Alto</span></label>
+            <label class="pill-radio u-medio"><input type="radio" name="urgencia" value="Medio"><span><i class="swatch"></i>Medio</span></label>
+            <label class="pill-radio u-bajo"><input type="radio" name="urgencia" value="Bajo"><span><i class="swatch"></i>Bajo</span></label>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="f-herramienta">¿Dónde se detectó la incidencia? <span class="opt">(si lo sabes)</span></label>
+          <select id="f-herramienta">
+            <option value="">No lo sé / no aplica</option>
+            <option>Respond.io</option>
+            <option>Rauda</option>
+            <option>Flyboard</option>
+            <option>Uptail</option>
+            <option>Detectado por el cliente (captura de WhatsApp)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f-descripcion">¿Qué ha sucedido?</label>
+          <textarea id="f-descripcion" required placeholder="Describe la incidencia: qué respondió o hizo el agente de IA, en qué conversación, qué detectaste…"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="f-esperado">¿Cómo tendría que haber sido?</label>
+          <textarea id="f-esperado" required placeholder="Por ejemplo: si es un error de precio, indica cuál era el precio correcto."></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="f-telefono">Teléfono del cliente</label>
+            <input type="tel" id="f-telefono" required placeholder="+34 600 000 000">
+          </div>
+          <div class="field">
+            <label for="f-enlace">Enlace a la conversación <span class="opt">(opcional)</span></label>
+            <input type="url" id="f-enlace" placeholder="https://…">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-captura">Captura de WhatsApp del cliente <span class="opt">(opcional, si el cliente te la enseñó a ti directamente)</span></label>
+          <div class="dropzone">
+            <span class="ico">📎</span>
+            <div style="flex:1; min-width:0;">
+              <input type="file" id="f-captura" accept="image/png,image/jpeg,image/webp,image/gif">
+              <div class="filename" id="f-captura-name"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-contacto">Tu correo corporativo</label>
+          <input type="email" id="f-contacto" required placeholder="nombre@laserum.es">
+          <p class="hint">Te avisaremos aquí sobre cambios o si necesitamos más información.</p>
+        </div>
+
+        <div>
+          <div class="submitbar">
+            <button type="submit" class="btn btn-primary" id="submit-btn">Enviar incidencia</button>
+            <div id="form-banner" style="flex:1; min-width:200px;"></div>
+          </div>
+          <p class="err" id="form-err"></p>
+        </div>
+
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ PANEL VIEW ============ -->
+  <section id="view-panel" hidden>
+
+    <div class="card gate" id="panel-gate">
+      <div class="ico">🔒</div>
+      <div>
+        <h3 style="font-size:15px;">Panel de gestión</h3>
+        <p class="hint" style="margin-top:4px;">Acceso restringido al equipo de gestión de incidencias.</p>
+      </div>
+      <input type="text" id="gate-code" placeholder="Código de acceso" autocomplete="off">
+      <button type="button" class="btn btn-primary" id="gate-submit" style="align-self:center;">Entrar</button>
+      <p class="err" id="gate-err"></p>
+    </div>
+
+    <div id="panel-content" hidden style="display:flex; flex-direction:column; gap:18px;">
+
+      <div class="kpis">
+        <div class="kpi"><b class="mono" id="kpi-total">0</b><span>Total</span></div>
+        <div class="kpi alto"><b class="mono" id="kpi-alto">0</b><span>Alto sin cerrar</span></div>
+        <div class="kpi medio"><b class="mono" id="kpi-medio">0</b><span>Medio sin cerrar</span></div>
+        <div class="kpi bajo"><b class="mono" id="kpi-bajo">0</b><span>Finalizadas</span></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="chips" id="chips-urgencia">
+          <button type="button" class="chip" data-urg="todas" aria-pressed="true">Todas las urgencias</button>
+          <button type="button" class="chip" data-urg="Alto" aria-pressed="false">Alto</button>
+          <button type="button" class="chip" data-urg="Medio" aria-pressed="false">Medio</button>
+          <button type="button" class="chip" data-urg="Bajo" aria-pressed="false">Bajo</button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-ghost btn-sm" id="refresh-btn">⟳ Actualizar</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="export-btn">⭳ Exportar a Excel/CSV</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="chips" id="chips-estado">
+          <button type="button" class="chip" data-estado="todos" aria-pressed="true">Todos los estados</button>
+          <button type="button" class="chip" data-estado="Sin empezar" aria-pressed="false">Sin empezar</button>
+          <button type="button" class="chip" data-estado="En curso" aria-pressed="false">En curso</button>
+          <button type="button" class="chip" data-estado="Falta de información" aria-pressed="false">Falta de información</button>
+          <button type="button" class="chip" data-estado="En pruebas" aria-pressed="false">En pruebas</button>
+          <button type="button" class="chip" data-estado="Finalizado" aria-pressed="false">Finalizado</button>
+        </div>
+      </div>
+
+      <div id="panel-list"></div>
+      <div class="empty" id="panel-empty" hidden>
+        <span class="ico">🗂️</span>
+        <p><b>Aún no hay incidencias registradas.</b></p>
+        <p>En cuanto el equipo envíe el primer reporte, aparecerá aquí ordenado por urgencia.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>Láserum &amp; Elha</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ======================================================================
+     CONFIGURACIÓN — pega aquí las 3 "Production URL" de tus webhooks de n8n.
+     Instrucciones completas en el mensaje donde se entregó este archivo.
+     ====================================================================== */
+  var SUBMIT_URL = "https://laserum.app.n8n.cloud/webhook/incidencias-guardar";
+  var LIST_URL   = "PON_AQUI_TU_URL_DE_WEBHOOK_LISTAR";
+  var UPDATE_URL = "PON_AQUI_TU_URL_DE_WEBHOOK_ACTUALIZAR";
+  var ADMIN_CODE = "GESTION-IA-2026";
+  /* ====================================================================== */
+
+  function isConfigured(url){ return url && url.indexOf('http') === 0; }
+  document.getElementById('config-warning').hidden = isConfigured(SUBMIT_URL) && isConfigured(LIST_URL) && isConfigured(UPDATE_URL);
+
+  var tabForm = document.getElementById('tab-form');
+  var tabPanel = document.getElementById('tab-panel');
+  var viewForm = document.getElementById('view-form');
+  var viewPanel = document.getElementById('view-panel');
+  var panelStarted = false;
+
+  function showTab(which){
+    var isForm = which === 'form';
+    viewForm.hidden = !isForm;
+    viewPanel.hidden = isForm;
+    tabForm.setAttribute('aria-selected', String(isForm));
+    tabPanel.setAttribute('aria-selected', String(!isForm));
+    if(!isForm && !panelStarted){ panelStarted = true; initPanelAuth(); }
+  }
+  tabForm.addEventListener('click', function(){ showTab('form'); });
+  tabPanel.addEventListener('click', function(){ showTab('panel'); });
+
+  /* ---------- origen -> departamento ---------- */
+  var departamentoWrap = document.getElementById('departamento-wrap');
+  var departamentoSel = document.getElementById('f-departamento');
+  document.getElementById('origen-group').addEventListener('change', function(e){
+    if(e.target.name !== 'origen') return;
+    var isLaserum = e.target.value === 'Láserum';
+    departamentoWrap.hidden = !isLaserum;
+    if(!isLaserum){ departamentoSel.value = ''; }
+  });
+
+  var fileInput = document.getElementById('f-captura');
+  var fileName = document.getElementById('f-captura-name');
+  fileInput.addEventListener('change', function(){
+    fileName.textContent = fileInput.files[0] ? fileInput.files[0].name : '';
+  });
+
+  function genTicket(){
+    var d = new Date();
+    var ymd = d.toISOString().slice(2,10).replace(/-/g,'');
+    var rand = Math.random().toString(36).slice(2,6).toUpperCase();
+    return 'INC-' + ymd + '-' + rand;
+  }
+  var URG_ORDER = { 'Alto':1, 'Medio':2, 'Bajo':3 };
+
+  /* ---------- submit ---------- */
+  var form = document.getElementById('incident-form');
+  var submitBtn = document.getElementById('submit-btn');
+  var formBanner = document.getElementById('form-banner');
+  var formErr = document.getElementById('form-err');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    formErr.textContent = ''; formBanner.innerHTML = '';
+
+    if(!isConfigured(SUBMIT_URL)){
+      formErr.textContent = 'El formulario todavía no está conectado (falta configurar SUBMIT_URL).';
+      return;
+    }
+    if(!form.reportValidity()) return;
+
+    var origenEl = form.querySelector('input[name=origen]:checked');
+    var urgenciaEl = form.querySelector('input[name=urgencia]:checked');
+    if(!origenEl || !urgenciaEl){ formErr.textContent = 'Indica el origen y el nivel de urgencia.'; return; }
+
+    var origen = origenEl.value;
+    var departamento = origen === 'Láserum' ? (departamentoSel.value || '') : '';
+    if(origen === 'Láserum' && !departamento){
+      formErr.textContent = 'Selecciona el departamento de Láserum.'; departamentoSel.focus(); return;
+    }
+
+    submitBtn.disabled = true; submitBtn.textContent = 'Enviando…';
+
+    var ticketId = genTicket();
+    var fd = new FormData();
+    fd.append('ticketId', ticketId);
+    fd.append('origen', origen);
+    fd.append('departamento', departamento);
+    fd.append('urgencia', urgenciaEl.value);
+    fd.append('herramienta', document.getElementById('f-herramienta').value);
+    fd.append('descripcion', document.getElementById('f-descripcion').value.trim());
+    fd.append('comportamientoEsperado', document.getElementById('f-esperado').value.trim());
+    fd.append('telefonoCliente', document.getElementById('f-telefono').value.trim());
+    fd.append('enlaceConversacion', document.getElementById('f-enlace').value.trim());
+    fd.append('contactoReporta', document.getElementById('f-contacto').value.trim());
+    fd.append('createdAt', new Date().toISOString());
+    fd.append('estado', 'Sin empezar');
+    fd.append('solucion', '');
+    if(fileInput.files[0]) fd.append('captura', fileInput.files[0]);
+
+    fetch(SUBMIT_URL, { method:'POST', body: fd })
+      .then(function(res){ if(!res.ok) throw new Error('http_' + res.status);
+        formBanner.innerHTML = '<div class="banner ok"><span>✅</span><div><b>Incidencia registrada</b><div class="sub">Referencia <span class="ticket">' + ticketId + '</span>. Te escribiremos si necesitamos más información.</div></div></div>';
+        form.reset(); departamentoWrap.hidden = true; fileName.textContent = '';
+      })
+      .catch(function(){ formErr.textContent = 'No se pudo enviar la incidencia. Comprueba tu conexión e inténtalo de nuevo en unos segundos.'; })
+      .finally(function(){ submitBtn.disabled = false; submitBtn.textContent = 'Enviar incidencia'; });
+  });
+
+  /* ---------- panel: gate ---------- */
+  function initPanelAuth(){
+    var gate = document.getElementById('panel-gate');
+    var content = document.getElementById('panel-content');
+    var codeInput = document.getElementById('gate-code');
+    var gateErr = document.getElementById('gate-err');
+
+    var already = false;
+    try{ already = sessionStorage.getItem('incidencias-admin') === '1'; }catch(e){}
+    if(already){ openPanel(); return; }
+
+    function tryUnlock(){
+      if(codeInput.value.trim() === ADMIN_CODE){
+        try{ sessionStorage.setItem('incidencias-admin','1'); }catch(e){}
+        openPanel();
+      } else { gateErr.textContent = 'Código incorrecto.'; }
+    }
+    document.getElementById('gate-submit').addEventListener('click', tryUnlock);
+    codeInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') tryUnlock(); });
+
+    function openPanel(){ gate.hidden = true; content.hidden = false; loadIncidents(); }
+  }
+
+  /* ---------- panel: data + render ---------- */
+  var allIncidents = [];
+  var filterUrg = 'todas';
+  var filterEstado = 'todos';
+
+  function normalizeList(payload){
+    var arr = Array.isArray(payload) ? payload : (payload && (payload.data || payload.rows || payload.items)) || [];
+    return arr.map(function(row){
+      row = row.json || row;
+      return {
+        id: row.ticketId,
+        ticketId: row.ticketId,
+        origen: row.origen,
+        departamento: row.departamento,
+        urgencia: row.urgencia,
+        urgenciaOrder: URG_ORDER[row.urgencia] || 9,
+        herramienta: row.herramienta,
+        descripcion: row.descripcion,
+        comportamientoEsperado: row.comportamientoEsperado,
+        telefonoCliente: row.telefonoCliente,
+        enlaceConversacion: row.enlaceConversacion,
+        contactoReporta: row.contactoReporta,
+        estado: row.estado || 'Sin empezar',
+        solucion: row.solucion || '',
+        createdAt: row.createdAt
+      };
+    });
+  }
+
+  function loadIncidents(){
+    var listEl = document.getElementById('panel-list');
+    if(!isConfigured(LIST_URL)){
+      listEl.innerHTML = '<p class="hint" style="text-align:center;padding:24px;">Falta configurar LIST_URL para poder cargar los casos.</p>';
+      return;
+    }
+    listEl.innerHTML = '<p class="hint" style="text-align:center;padding:24px;">Cargando…</p>';
+    fetch(LIST_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'list' }) })
+      .then(function(res){ if(!res.ok) throw new Error('http_' + res.status); return res.json(); })
+      .then(function(payload){ allIncidents = normalizeList(payload); renderPanel(); })
+      .catch(function(){ listEl.innerHTML = '<p class="hint" style="text-align:center;padding:24px;">No se pudieron cargar los casos. Comprueba la URL de LIST_URL y que el flujo esté activo en n8n.</p>'; });
+  }
+  document.getElementById('refresh-btn').addEventListener('click', loadIncidents);
+
+  document.getElementById('chips-urgencia').addEventListener('click', function(e){
+    var btn = e.target.closest('.chip'); if(!btn) return;
+    filterUrg = btn.dataset.urg;
+    Array.prototype.forEach.call(document.querySelectorAll('#chips-urgencia .chip'), function(c){ c.setAttribute('aria-pressed', String(c === btn)); });
+    renderPanel();
+  });
+  document.getElementById('chips-estado').addEventListener('click', function(e){
+    var btn = e.target.closest('.chip'); if(!btn) return;
+    filterEstado = btn.dataset.estado;
+    Array.prototype.forEach.call(document.querySelectorAll('#chips-estado .chip'), function(c){ c.setAttribute('aria-pressed', String(c === btn)); });
+    renderPanel();
+  });
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; });
+  }
+
+  function renderPanel(){
+    document.getElementById('kpi-total').textContent = allIncidents.length;
+    document.getElementById('kpi-alto').textContent = allIncidents.filter(function(i){ return i.urgencia==='Alto' && i.estado!=='Finalizado'; }).length;
+    document.getElementById('kpi-medio').textContent = allIncidents.filter(function(i){ return i.urgencia==='Medio' && i.estado!=='Finalizado'; }).length;
+    document.getElementById('kpi-bajo').textContent = allIncidents.filter(function(i){ return i.estado==='Finalizado'; }).length;
+
+    var list = allIncidents.filter(function(i){
+      if(filterUrg !== 'todas' && i.urgencia !== filterUrg) return false;
+      if(filterEstado !== 'todos' && i.estado !== filterEstado) return false;
+      return true;
+    });
+    list.sort(function(a,b){
+      var ou = (a.urgenciaOrder||9) - (b.urgenciaOrder||9);
+      if(ou !== 0) return ou;
+      return (b.createdAt||'').localeCompare(a.createdAt||'');
+    });
+
+    var listEl = document.getElementById('panel-list');
+    var emptyEl = document.getElementById('panel-empty');
+    if(list.length === 0){
+      listEl.innerHTML = '';
+      emptyEl.hidden = allIncidents.length !== 0;
+      if(allIncidents.length !== 0){ listEl.innerHTML = '<p class="hint" style="text-align:center;padding:24px;">Ningún caso coincide con los filtros seleccionados.</p>'; }
+      return;
+    }
+    emptyEl.hidden = true;
+
+    var groups = [ ['Alto','alto','Urgencia alta'], ['Medio','medio','Urgencia media'], ['Bajo','bajo','Urgencia baja'] ];
+    var html = '';
+    groups.forEach(function(g){
+      var items = list.filter(function(i){ return i.urgencia === g[0]; });
+      if(items.length === 0) return;
+      html += '<div class="group-label ' + g[1] + '"><i class="bar"></i>' + g[2] + ' · ' + items.length + '</div>';
+      items.forEach(function(i){ html += renderIncident(i, g[1]); });
+    });
+    listEl.innerHTML = html;
+
+    var ESTADOS = ['Sin empezar','En curso','Falta de información','En pruebas','Finalizado'];
+    Array.prototype.forEach.call(listEl.querySelectorAll('.estado-select'), function(sel){
+      sel.innerHTML = ESTADOS.map(function(s){ return '<option' + (s===sel.dataset.current?' selected':'') + '>' + s + '</option>'; }).join('');
+      sel.addEventListener('change', function(){ saveUpdate(sel.dataset.id, { estado: sel.value }); });
+    });
+    Array.prototype.forEach.call(listEl.querySelectorAll('.save-solucion'), function(btn){
+      btn.addEventListener('click', function(){
+        var ta = listEl.querySelector('.solucion-text[data-id="' + btn.dataset.id + '"]');
+        btn.disabled = true; btn.textContent = 'Guardando…';
+        saveUpdate(btn.dataset.id, { solucion: ta.value }, function(ok){
+          btn.textContent = ok ? 'Guardado ✓' : 'Error, reintenta';
+          setTimeout(function(){ btn.textContent = 'Guardar solución'; btn.disabled = false; }, 1400);
+        });
+      });
+    });
+  }
+
+  function saveUpdate(ticketId, changes, cb){
+    if(!isConfigured(UPDATE_URL)){ if(cb) cb(false); return; }
+    var local = allIncidents.find(function(i){ return i.ticketId === ticketId; });
+    var body = Object.assign({ action:'update', ticketId: ticketId }, changes);
+    fetch(UPDATE_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      .then(function(res){ if(!res.ok) throw new Error('http_' + res.status);
+        if(local) Object.assign(local, changes);
+        renderPanel();
+        if(cb) cb(true);
+      })
+      .catch(function(){ if(cb) cb(false); });
+  }
+
+  function renderIncident(i, cls){
+    var fecha = '';
+    try{ fecha = new Date(i.createdAt).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }catch(e){ fecha = i.createdAt || ''; }
+    var origenTxt = i.origen === 'Láserum' && i.departamento ? (i.origen + ' · ' + i.departamento) : (i.origen || '—');
+    var enlaceHtml = i.enlaceConversacion ? '<a href="' + esc(i.enlaceConversacion) + '" target="_blank" rel="noopener">' + esc(i.enlaceConversacion) + '</a>' : '<span style="color:var(--muted)">—</span>';
+
+    return (
+      '<details class="incident ' + cls + '">' +
+        '<summary>' +
+          '<div class="isum-main">' +
+            '<div class="isum-title">' + esc(i.descripcion || '(sin descripción)') + '</div>' +
+            '<div class="isum-meta"><span class="mono">' + esc(i.ticketId||'') + '</span><span>' + esc(origenTxt) + '</span><span>' + esc(fecha) + '</span></div>' +
+          '</div>' +
+          '<span class="badge ' + cls + '">' + esc(i.urgencia||'') + '</span>' +
+          '<span class="badge estado">' + esc(i.estado||'Sin empezar') + '</span>' +
+          '<span class="chev">▸</span>' +
+        '</summary>' +
+        '<div class="idetail">' +
+          '<div class="grid">' +
+            '<div class="dpair"><label>Qué ha sucedido</label><div>' + esc(i.descripcion) + '</div></div>' +
+            '<div class="dpair"><label>Cómo tendría que haber sido</label><div>' + esc(i.comportamientoEsperado) + '</div></div>' +
+            '<div class="dpair"><label>Herramienta</label><div>' + esc(i.herramienta || '—') + '</div></div>' +
+            '<div class="dpair"><label>Teléfono del cliente</label><div>' + esc(i.telefonoCliente || '—') + '</div></div>' +
+            '<div class="dpair"><label>Enlace a la conversación</label><div>' + enlaceHtml + '</div></div>' +
+            '<div class="dpair"><label>Reportado por</label><div>' + esc(i.contactoReporta || '—') + '</div></div>' +
+            '<div class="dpair"><label>Referencia</label><div class="mono">' + esc(i.ticketId||'') + '</div></div>' +
+          '</div>' +
+          '<div class="manage">' +
+            '<div class="field"><label>Estado</label><select class="estado-select" data-id="' + esc(i.id) + '" data-current="' + esc(i.estado||'Sin empezar') + '"></select></div>' +
+            '<div class="field" style="flex:2 1 260px;"><label>Solución aplicada</label><textarea class="solucion-text" data-id="' + esc(i.id) + '" placeholder="Describe la solución dada a este caso…">' + esc(i.solucion||'') + '</textarea></div>' +
+            '<button type="button" class="btn btn-primary btn-sm save-solucion" data-id="' + esc(i.id) + '">Guardar solución</button>' +
+          '</div>' +
+        '</div>' +
+      '</details>'
+    );
+  }
+
+  /* ---------- export (descarga directa, sin backend) ---------- */
+  document.getElementById('export-btn').addEventListener('click', function(){
+    var cols = ['Referencia','Fecha','Urgencia','Estado','Origen','Departamento','Herramienta','Descripción','Cómo debería haber sido','Teléfono cliente','Enlace conversación','Reportado por','Solución'];
+    var rows = allIncidents.slice().sort(function(a,b){
+      var ou=(a.urgenciaOrder||9)-(b.urgenciaOrder||9); if(ou!==0) return ou;
+      return (b.createdAt||'').localeCompare(a.createdAt||'');
+    }).map(function(i){
+      return [i.ticketId, i.createdAt, i.urgencia, i.estado, i.origen, i.departamento, i.herramienta, i.descripcion, i.comportamientoEsperado, i.telefonoCliente, i.enlaceConversacion, i.contactoReporta, i.solucion];
+    });
+    function csvField(v){ var s = v == null ? '' : String(v); if(/[";\n]/.test(s)) s = '"' + s.replace(/"/g,'""') + '"'; return s; }
+    var lines = [cols.map(csvField).join(';')].concat(rows.map(function(r){ return r.map(csvField).join(';'); }));
+    var csv = '﻿' + lines.join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'incidencias-ia_' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+})();
+</script>
+</body>
+</html>
